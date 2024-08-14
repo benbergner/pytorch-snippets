@@ -1,11 +1,12 @@
 import torch
+import torch.nn as nn
 
 """
 Gradient accumulation is a technique to train models with larger batch sizes than the GPU memory can handle.
 Instead of updating the model parameters every batch, the gradients are accumulated over multiple batches.
 After a certain number of batches, the accumulated gradients are used to update the model parameters.
 
-In this snippet, we provide two functions to perform gradient accumulation:
+In this snippet, two functions are provided to perform gradient accumulation:
 - grad_accum_simple: a simple implementation of gradient accumulation
 - grad_accum_amp: an implementation of gradient accumulation with automatic mixed precision (AMP)
 
@@ -36,14 +37,6 @@ References:
 - https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-accumulation
 """
 
-data_loader = ...  # your data loader
-model = ...  # your model
-optimizer = ...  # your optimizer
-loss_fn = ...  # your loss function
-fp16_scaler = torch.cuda.amp.GradScaler()  # AMP scaler
-
-accum_steps = 2  # Number of gradient accumulation steps
-
 
 def grad_accum_simple(data_loader, model, optimizer, loss_fn, accum_steps):
     for i, (input, target) in enumerate(data_loader):
@@ -70,7 +63,9 @@ def grad_accum_amp(data_loader, model, optimizer, loss_fn, fp16_scaler, accum_st
         input = input.cuda()
         target = target.cuda()
 
-        with torch.cuda.amp.autocast(fp16_scaler is not None):
+        with torch.autocast(
+            device_type="cuda", dtype=torch.float16, enabled=fp16_scaler is not None
+        ):
             output = model(input)
             loss = loss_fn(output, target) / accum_steps
 
@@ -79,8 +74,6 @@ def grad_accum_amp(data_loader, model, optimizer, loss_fn, fp16_scaler, accum_st
         else:
             loss.backward()
 
-        loss.backward()
-
         if (i + 1) % accum_steps == 0:
             if fp16_scaler is not None:
                 fp16_scaler.step(optimizer)
@@ -88,3 +81,45 @@ def grad_accum_amp(data_loader, model, optimizer, loss_fn, fp16_scaler, accum_st
             else:
                 optimizer.step()
             optimizer.zero_grad()
+
+
+####################################################################################################
+# Example usage
+####################################################################################################
+
+
+# Dummy model for testing
+class DummyModel(nn.Module):
+    def __init__(self):
+        super(DummyModel, self).__init__()
+        self.linear = nn.Linear(3, 1)
+
+    def forward(self, x):
+        return self.linear(x)
+
+
+# Dummy dataset for testing
+class DummyDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        self.data = [torch.randn(3) for _ in range(4)]
+        self.targets = [torch.randn(1) for _ in range(4)]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        return self.data[index], self.targets[index]
+
+
+if __name__ == "__main__":
+
+    dataset = DummyDataset()
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=1)
+    model = DummyModel().cuda()
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    fp16_scaler = torch.cuda.amp.GradScaler()
+    accum_steps = 2
+
+    grad_accum_simple(data_loader, model, optimizer, loss_fn, accum_steps)
+    grad_accum_amp(data_loader, model, optimizer, loss_fn, fp16_scaler, accum_steps)
