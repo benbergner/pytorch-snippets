@@ -2,7 +2,10 @@
 
 ######################################################################################
 # Script to download and extract the ImageNet-1k dataset for image classification
-# Place this script in your dataset directory and call it: ./prepare_imagenet.sh
+# Make sure to have enough disk space, the download size is ~144 GB
+# 1) Place this script in your dataset directory
+# 2) Allow execution: chmod +x prepare_imagenet.sh
+# 3) Execute: ./prepare_imagenet.sh
 
 #  ILSVRC
 #  ├──train
@@ -20,19 +23,23 @@
 ######################################################################################
 
 # Create ILSVRC directory and switch to it.
-mdir ILSVRC && cd ILSVRC
+mkdir ILSVRC && cd ILSVRC
 
 # Download ImageNet-1k train (138GB) and val (6.3GB) sets
 # From: https://image-net.org/challenges/LSVRC/2012/2012-downloads.php
-wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_train.tar
-wget https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar
+
+TRAIN_FILE="ILSVRC2012_img_train.tar"
+VAL_FILE="ILSVRC2012_img_val.tar"
+
+wget "https://image-net.org/data/ILSVRC/2012/$TRAIN_FILE"
+wget "https://image-net.org/data/ILSVRC/2012/$VAL_FILE"
 
 # Create train dir, move train tar file and switch to train dir
-mkdir train && mv ILSVRC2012_img_train.tar train/ && cd train
+mkdir train && mv $TRAIN_FILE train/ && cd train
 
 # Extract train tar file and remove it
 # This will extract 1 tar file per class
-tar -xvf ILSVRC2012_img_train.tar && rm -f ILSVRC2012_img_train.tar
+tar -xvf $TRAIN_FILE && rm -f $TRAIN_FILE
 
 # Extract all tar files in the current directory
 # This will create a directory for each class and extract the images there
@@ -43,11 +50,11 @@ find . -name "*.tar" | while read NAME ; do mkdir -p "${NAME%.tar}"; tar -xvf "$
 cd ..
 
 # Create val dir, move val tar file, switch to val dir
-mkdir val && mv ILSVRC2012_img_val.tar val/ && cd val
+mkdir val && mv $VAL_FILE val/ && cd val
 
 # Extract all images in the current directory
 # This will extract all images (without class directories)
-tar -xvf ILSVRC2012_img_val.tar
+tar -xvf $VAL_FILE
 
 # We manually have to create class directories and put respective images in them
 mkdir -p n01440764	
