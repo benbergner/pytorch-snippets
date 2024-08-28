@@ -83,7 +83,7 @@ if __name__ == "__main__":
     x = torch.randn(batch_size, seq_len, embed_dim)
 
     # Create an Attention layer
-    attn = Attention(dim=embed_dim)
+    attn = Attention(dim=embed_dim, fused_attn=True, enable_flash=True)
 
     # Pass the input tensor through the Attention layer
     output = attn(x)
